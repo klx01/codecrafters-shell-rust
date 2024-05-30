@@ -34,6 +34,7 @@ fn main() {
             "exit" => command_exit(params),
             "echo" => command_echo(params, last_exit_code),
             "type" => command_type(params),
+            "pwd" => command_pwd(params),
             _ => match find_executable(command) {
                 Some(path) => execute(&path, params),
                 None => {
@@ -43,15 +44,6 @@ fn main() {
             }
         };
     }
-}
-
-fn command_echo(params: &str, last_exit_code: i32) -> i32 {
-    if params == "$0" {
-        println!("{last_exit_code}")
-    } else {
-        println!("{params}");
-    }
-    0
 }
 
 fn split_input(input: &str) -> (&str, &str) {
@@ -77,6 +69,15 @@ fn command_exit(params: &str) -> i32 {
     std::process::exit(exit_code);
 }
 
+fn command_echo(params: &str, last_exit_code: i32) -> i32 {
+    if params == "$0" {
+        println!("{last_exit_code}")
+    } else {
+        println!("{params}");
+    }
+    0
+}
+
 fn command_type(mut params: &str) -> i32 {
     let mut has_success = false;
     loop {
@@ -86,7 +87,7 @@ fn command_type(mut params: &str) -> i32 {
             break;
         }
         match command {
-            "exit" | "echo" | "type" => {
+            "exit" | "echo" | "type" | "pwd" => {
                 has_success = true;
                 println!("{command} is a shell builtin");
             },
@@ -94,8 +95,7 @@ fn command_type(mut params: &str) -> i32 {
                 Some(path) => {
                     has_success = true;
                     print!("{command} is ");
-                    let _ = io::stdout().write(path.as_os_str().as_encoded_bytes());
-                    print!("\n");
+                    write_path(path, true);
                 },
                 None => println!("{command} not found"),
             }
@@ -117,6 +117,31 @@ fn find_executable(name: &str) -> Option<PathBuf> {
         }
     }
     None
+}
+
+fn write_path(path: PathBuf, add_newline: bool) {
+    let _ = io::stdout().write(path.as_os_str().as_encoded_bytes());
+    if add_newline {
+        print!("\n");
+    }
+}
+
+fn command_pwd(params: &str) -> i32 {
+    if params.len() > 0 {
+        eprintln!("pwd: expected 0 arguments");
+        return 2;
+    }
+    let pwd = std::env::current_dir();
+    match pwd {
+        Ok(pwd) => {
+            write_path(pwd, true);
+            0
+        }
+        Err(e) => {
+            eprintln!("failed to get pwd {e}");
+            2
+        }
+    }
 }
 
 fn execute(path: &Path, params: &str) -> i32 {
