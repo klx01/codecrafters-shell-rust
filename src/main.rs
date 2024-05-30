@@ -147,20 +147,38 @@ fn command_pwd(params: &str) -> i32 {
 }
 
 fn command_cd(params: &str) -> i32 {
-    if params.len() == 0 {
-        // todo: cd to home
-        eprintln!("Not enough args for cd command");
-        return 1;
-    }
-    let (to_dir, tail) = split_input(params);
-    if tail.len() > 0 {
-        eprintln!("Too many args for cd command");
-        return 1;
-    }
-    match std::env::set_current_dir(to_dir) {
+    let input_to_dir = if params.len() == 0 {
+        "~"
+    } else {
+        let (to_dir, tail) = split_input(params);
+        if tail.len() > 0 {
+            eprintln!("Too many args for cd command");
+            return 1;
+        }
+        to_dir
+    };
+    let from_home_prefix = "~/";
+    let expanded_to_dir = if (input_to_dir == "~") || input_to_dir.starts_with(from_home_prefix) {
+        #[allow(deprecated)]
+        let Some(mut home) = std::env::home_dir() else {
+            eprintln!("Failed to get home dir");
+            return 1;
+        };
+        match input_to_dir.strip_prefix(from_home_prefix) {
+            Some(dir) => {
+                home.push(dir);
+                home
+            },
+            None => home,
+        }
+    } else {
+        PathBuf::from(input_to_dir)
+    };
+
+    match std::env::set_current_dir(expanded_to_dir) {
         Ok(_) => 0,
         Err(_) => {
-            eprintln!("cd: {to_dir}: No such file or directory");
+            eprintln!("cd: {input_to_dir}: No such file or directory");
             return 1;
         }
     }
