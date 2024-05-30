@@ -22,9 +22,9 @@ fn main() {
         }
 
         let (command, params) = split_input(input);
-        let params = params.trim();
         match command {
-            "exit" => process_exit(params),
+            "exit" => command_exit(params),
+            "echo" => println!("{params}"),
             _ => eprintln!("{command}: command not found")
         }
     }
@@ -35,7 +35,7 @@ fn split_input(input: &str) -> (&str, &str) {
     (head, tail.trim())
 }
 
-fn process_exit(params: &str) {
+fn command_exit(params: &str) {
     let (exit_code, _) = split_input(params);
     let exit_code = if exit_code.len() == 0 {
         0
