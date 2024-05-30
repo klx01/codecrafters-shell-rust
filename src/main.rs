@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::path::PathBuf;
 
 fn main() {
     loop {
@@ -63,7 +64,25 @@ fn command_type(mut params: &str) {
         }
         match command {
             "exit" | "echo" | "type" => println!("{command} is a shell builtin"),
-            _ => println!("{command} not found"),
+            _ => match find_executable(command) {
+                Some(path) => {
+                    print!("{command} is ");
+                    let _ = io::stdout().write(path.as_os_str().as_encoded_bytes());
+                    print!("\n");
+                },
+                None => println!("{command} not found"),
+            }
         }
     }
+}
+
+fn find_executable(name: &str) -> Option<PathBuf> {
+    let paths = std::env::var_os("PATH")?;
+    for mut path in std::env::split_paths(&paths) {
+        path.push(name);
+        if path.exists() {
+            return Some(path);
+        }
+    }
+    None
 }
