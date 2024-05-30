@@ -159,8 +159,8 @@ fn command_cd(params: &str) -> i32 {
     }
     match std::env::set_current_dir(to_dir) {
         Ok(_) => 0,
-        Err(e) => {
-            eprintln!("cd failed: {e}");
+        Err(_) => {
+            eprintln!("cd: {to_dir}: No such file or directory");
             return 1;
         }
     }
