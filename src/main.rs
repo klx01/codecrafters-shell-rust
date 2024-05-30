@@ -72,7 +72,7 @@ fn command_exit(params: &str) -> i32 {
 }
 
 fn command_echo(params: &str, last_exit_code: i32) -> i32 {
-    if params == "$0" {
+    if params == "$?" {
         println!("{last_exit_code}")
     } else {
         println!("{params}");
