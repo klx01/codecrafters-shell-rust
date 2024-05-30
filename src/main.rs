@@ -35,6 +35,7 @@ fn main() {
             "echo" => command_echo(params, last_exit_code),
             "type" => command_type(params),
             "pwd" => command_pwd(params),
+            "cd" => command_cd(params),
             _ => match find_executable(command) {
                 Some(path) => execute(&path, params),
                 None => {
@@ -47,6 +48,7 @@ fn main() {
 }
 
 fn split_input(input: &str) -> (&str, &str) {
+    // todo: needs to handle quoting, backslashes, etc..
     let (head, tail) = input.split_once(' ').unwrap_or((input, ""));
     (head, tail.trim())
 }
@@ -87,7 +89,7 @@ fn command_type(mut params: &str) -> i32 {
             break;
         }
         match command {
-            "exit" | "echo" | "type" | "pwd" => {
+            "exit" | "echo" | "type" | "pwd" | "cd" => {
                 has_success = true;
                 println!("{command} is a shell builtin");
             },
@@ -131,10 +133,10 @@ fn command_pwd(params: &str) -> i32 {
         eprintln!("pwd: expected 0 arguments");
         return 2;
     }
-    let pwd = std::env::current_dir();
-    match pwd {
-        Ok(pwd) => {
-            write_path(pwd, true);
+    let cwd = std::env::current_dir();
+    match cwd {
+        Ok(cwd) => {
+            write_path(cwd, true);
             0
         }
         Err(e) => {
@@ -144,9 +146,29 @@ fn command_pwd(params: &str) -> i32 {
     }
 }
 
+fn command_cd(params: &str) -> i32 {
+    if params.len() == 0 {
+        // todo: cd to home
+        eprintln!("Not enough args for cd command");
+        return 1;
+    }
+    let (to_dir, tail) = split_input(params);
+    if tail.len() > 0 {
+        eprintln!("Too many args for cd command");
+        return 1;
+    }
+    match std::env::set_current_dir(to_dir) {
+        Ok(_) => 0,
+        Err(e) => {
+            eprintln!("cd failed: {e}");
+            return 1;
+        }
+    }
+}
+
 fn execute(path: &Path, params: &str) -> i32 {
     let status = Command::new(path)
-        .arg(params) // this does not correctly handle multiple arguments
+        .arg(params) // todo: this does not correctly handle multiple arguments
         .status();
     match status {
         Ok(exit_status) => match exit_status.code() {
